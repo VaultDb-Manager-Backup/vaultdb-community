@@ -1,10 +1,14 @@
 # VaultDB Community - Dockerfile
 # Multi-stage build for optimized production image
 
+ARG VERSION=0.1.0
+
 # ===========================================
 # Stage 1: Build
 # ===========================================
 FROM node:20-alpine AS builder
+
+ARG VERSION
 
 WORKDIR /app
 
@@ -34,6 +38,16 @@ RUN yarn build
 # Stage 2: Production
 # ===========================================
 FROM node:20-alpine AS production
+
+ARG VERSION
+
+LABEL org.opencontainers.image.title="VaultDB Community"
+LABEL org.opencontainers.image.description="Database Backup Manager - Community Edition"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/VaultDb-Manager-Backup/vaultdb-community"
+LABEL org.opencontainers.image.licenses="MIT"
+
+ENV APP_VERSION=${VERSION}
 
 WORKDIR /app
 
@@ -68,11 +82,10 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy built packages from builder
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
-COPY --from=builder /app/packages/cli/dist ./packages/cli/dist
 
 # Copy views and public folders (not compiled)
-COPY packages/server/views ./views
-COPY packages/server/public ./public
+COPY packages/server/views ./packages/server/views
+COPY packages/server/public ./packages/server/public
 
 # Create backup directories
 RUN mkdir -p /app/backups /app/restores && \
@@ -89,4 +102,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # Default command (API server)
-CMD ["node", "packages/server/dist/api/main.js"]
+CMD ["node", "packages/server/dist/server/src/api/main.js"]
