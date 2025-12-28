@@ -84,8 +84,9 @@ COPY --from=builder /app/packages/core/dist ./packages/core/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 
 # Copy views and public folders (not compiled)
-COPY packages/server/views ./packages/server/views
-COPY packages/server/public ./packages/server/public
+# Edge.js expects /app/views in production
+COPY packages/server/views ./views
+COPY packages/server/public ./public
 
 # Create backup directories
 RUN mkdir -p /app/backups /app/restores && \
