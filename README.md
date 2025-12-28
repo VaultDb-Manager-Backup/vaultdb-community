@@ -3,6 +3,7 @@
 Open source database backup manager with support for MySQL, PostgreSQL, MongoDB, and MariaDB.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://github.com/VaultDb-Manager-Backup/vaultdb-community/pkgs/container/vaultdb-community)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ## Features
@@ -17,57 +18,151 @@ Open source database backup manager with support for MySQL, PostgreSQL, MongoDB,
 - **Web UI**: Simple dashboard for monitoring
 - **HTTP Basic Auth**: Optional dashboard protection
 
-## Quick Start
+## Self-Hosting
 
-### Using Docker Compose
+### Quick Start with Docker
+
+The easiest way to run VaultDB Community is using our pre-built Docker image:
+
+```bash
+docker run -d \
+  --name vaultdb \
+  -p 3000:3000 \
+  -e MONGODB_URI=mongodb://your-mongo:27017/vaultdb \
+  -e REDIS_HOST=your-redis \
+  ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+```
+
+### Docker Compose (Recommended)
+
+Create a `docker-compose.yaml` file:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=your-secure-password
+    volumes:
+      - backups:/app/backups
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+    command: ["node", "packages/server/dist/server/src/worker/main.js"]
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - backups:/app/backups
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
+  backups:
+```
+
+Start the services:
+
+```bash
+docker compose up -d
+
+# Access the dashboard
+open http://localhost:3000
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Application port | `3000` |
+| `NODE_ENV` | Environment mode | `production` |
+| `AUTH_USERNAME` | Dashboard username (leave empty to disable auth) | - |
+| `AUTH_PASSWORD` | Dashboard password (leave empty to disable auth) | - |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://mongo:27017/vaultdb` |
+| `REDIS_HOST` | Redis host | `redis` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `ENCRYPTION_KEY` | 32-character key for backup encryption | - |
+| `BACKUP_CONCURRENCY` | Number of concurrent backup jobs | `2` |
+| `RESTORE_CONCURRENCY` | Number of concurrent restore jobs | `2` |
+
+### Available Tags
+
+| Tag | Description |
+|-----|-------------|
+| `latest` | Latest stable release |
+| `x.y.z` | Specific version (e.g., `0.1.1`) |
+| `x.y` | Latest patch of minor version |
+| `x` | Latest minor of major version |
+
+```bash
+# Pull specific version
+docker pull ghcr.io/vaultdb-manager-backup/vaultdb-community:0.1.1
+
+# Pull latest
+docker pull ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+```
+
+### Platform Support
+
+The Docker image supports multiple architectures:
+- `linux/amd64` - Intel/AMD 64-bit (servers, most VPS)
+- `linux/arm64` - ARM 64-bit (Apple Silicon M1/M2/M3, Raspberry Pi 4)
+
+## Development
+
+For local development with hot-reload:
 
 ```bash
 # Clone the repository
 git clone https://github.com/VaultDb-Manager-Backup/vaultdb-community.git
 cd vaultdb-community
 
-# Copy and configure environment variables
-cp .docker/dev/.env.example .docker/dev/.env
+# Install dependencies
+yarn install
 
-# Start the services
+# Start infrastructure (MongoDB, Redis)
+docker compose -f .docker/dev/app.yaml up -d mongo redis
+
+# Start development servers
+yarn start:dev        # API server
+yarn start:dev:worker # Worker (separate terminal)
+
+# Or use Docker with source mounting
 docker compose -f .docker/dev/app.yaml up -d
-
-# Access the dashboard
-open http://localhost:3001
 ```
 
-Default credentials: `admin` / `admin`
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Application port | `3001` |
-| `NODE_ENV` | Environment mode | `development` |
-| `AUTH_USERNAME` | Basic auth username (leave empty to disable) | - |
-| `AUTH_PASSWORD` | Basic auth password (leave empty to disable) | - |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://mongo:27017/vaultdb` |
-| `REDIS_HOST` | Redis host | `redis` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `ENCRYPTION_KEY` | 32-character encryption key | - |
-| `S3_ENDPOINT` | S3-compatible endpoint URL | - |
-| `S3_REGION` | S3 region | `us-east-1` |
-| `S3_ACCESS_KEY` | S3 access key | - |
-| `S3_SECRET_KEY` | S3 secret key | - |
-| `S3_BUCKET_NAME` | S3 bucket name | `backups` |
-
-### Using npm/CLI
+### Docker Compose Profiles (Development)
 
 ```bash
-npm install -g @vaultdb/cli
-vaultdb config init
-vaultdb backup run
-```
-
-## Docker Compose Profiles
-
-```bash
-# Start core services only (app, worker, mongo, redis)
+# Start core services only
 docker compose -f .docker/dev/app.yaml up -d
 
 # Start with MinIO storage (S3-compatible)
@@ -78,9 +173,6 @@ docker compose -f .docker/dev/app.yaml --profile databases up -d
 
 # Start everything
 docker compose -f .docker/dev/app.yaml --profile storage --profile databases up -d
-
-# Scale workers
-WORKER_REPLICAS=3 docker compose -f .docker/dev/app.yaml up -d
 ```
 
 ## Authentication

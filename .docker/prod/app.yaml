@@ -7,7 +7,7 @@ services:
   # ===========================================
 
   app:
-    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.0}
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.1}
     container_name: vaultdb-app
     ports:
       - "${PORT:-3000}:3000"
@@ -38,7 +38,7 @@ services:
       retries: 3
 
   worker:
-    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.0}
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.1}
     container_name: vaultdb-worker
     command: ["node", "packages/server/dist/server/src/worker/main.js"]
     environment:
@@ -101,7 +101,7 @@ volumes:
 # Usage
 # ===========================================
 #
-# Start with default version (0.1.0):
+# Start with default version (0.1.1):
 #   docker compose -f .docker/prod/app.yaml up -d
 #
 # Start with specific version:
