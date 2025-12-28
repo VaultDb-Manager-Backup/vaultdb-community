@@ -1,0 +1,23 @@
+# VaultDB Community - Development Dockerfile
+# Minimal image - uses host's node_modules and dist via volumes
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install database clients only
+RUN apk add --no-cache \
+    postgresql16-client \
+    mysql-client \
+    mariadb-client \
+    mongodb-tools \
+    bash curl tar gzip
+
+# Create directories
+RUN mkdir -p /app/backups /app/restores
+
+# Expose port
+EXPOSE 3000
+
+# Default command
+CMD ["node", "packages/server/dist/api/main.js"]

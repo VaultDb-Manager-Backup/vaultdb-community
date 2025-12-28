@@ -1,0 +1,241 @@
+@component('components/layout/app', { title: 'Dashboard' })
+@slot('main')
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-500 text-sm">Total Backups</p>
+          <p class="text-3xl font-bold mt-1 text-gray-800">{{ stats.total }}</p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
+          <i class="fas fa-database text-teal-600"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-500 text-sm">Completed</p>
+          <p class="text-3xl font-bold mt-1 text-green-600">{{ stats.completed }}</p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+          <i class="fas fa-check text-green-600"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-500 text-sm">Failed</p>
+          <p class="text-3xl font-bold mt-1 text-red-600">{{ stats.failed }}</p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+          <i class="fas fa-times text-red-600"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-500 text-sm">Total Size</p>
+          <p class="text-3xl font-bold mt-1 text-gray-800">{{ Math.round(stats.totalSize / 1024 / 1024) }} MB</p>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+          <i class="fas fa-hdd text-purple-600"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Recent Backups -->
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">Recent Backups</h3>
+        <a href="/backups" class="text-teal-600 text-sm hover:underline">View all</a>
+      </div>
+
+      @if(backups.length === 0)
+        <div class="text-center py-8 text-gray-400">
+          <i class="fas fa-inbox text-4xl mb-3"></i>
+          <p>No backups yet</p>
+        </div>
+      @else
+        <div class="space-y-3">
+          @each(backup in backups)
+            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-100">
+              <div class="flex items-center gap-3">
+                @if(backup.status === 'completed')
+                  <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-sm"></i>
+                  </div>
+                @elseif(backup.status === 'failed')
+                  <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-times text-red-600 text-sm"></i>
+                  </div>
+                @else
+                  <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <i class="fas fa-spinner fa-spin text-yellow-600 text-sm"></i>
+                  </div>
+                @endif
+                <div>
+                  <p class="font-medium text-gray-800">{{ backup.settings_name }}</p>
+                  <p class="text-xs text-gray-500">{{ new Date(backup.createdAt).toLocaleString() }}</p>
+                </div>
+              </div>
+              <span class="text-sm text-gray-500">
+                @if(backup.status === 'completed' && backup.file_size != null)
+                  {{ backup.file_size > 1024 * 1024 ? (backup.file_size / 1024 / 1024).toFixed(2) + ' MB' : Math.round(backup.file_size / 1024) + ' KB' }}
+                @elseif(backup.status === 'running')
+                  <span class="text-yellow-600">...</span>
+                @else
+                  -
+                @endif
+              </span>
+            </div>
+          @endeach
+        </div>
+      @endif
+    </div>
+
+    <!-- Configured Databases -->
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">Configured Databases</h3>
+        <a href="/settings/new" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+          <i class="fas fa-plus mr-2"></i>Add New
+        </a>
+      </div>
+
+      @if(settings.length === 0)
+        <div class="text-center py-8 text-gray-400">
+          <i class="fas fa-server text-4xl mb-3"></i>
+          <p>No databases configured</p>
+          <a href="/settings/new" class="text-teal-600 text-sm hover:underline mt-2 inline-block">
+            Add your first database
+          </a>
+        </div>
+      @else
+        <div class="space-y-3">
+          @each(setting in settings)
+            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-100" data-setting-id="{{ setting._id }}">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                  @if(setting.database_type === 'mysql')
+                    <i class="fas fa-database text-blue-600"></i>
+                  @elseif(setting.database_type === 'postgresql')
+                    <i class="fas fa-database text-blue-500"></i>
+                  @else
+                    <i class="fas fa-leaf text-green-600"></i>
+                  @endif
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800 setting-name">{{ setting.name }}</p>
+                  <p class="text-xs text-gray-500">{{ setting.database_type }} - {{ setting.host }}:{{ setting.port }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="backup-status text-xs" data-id="{{ setting._id }}"></span>
+                <button type="button" class="backup-btn btn-primary px-3 py-1 rounded text-sm" data-id="{{ setting._id }}">
+                  <i class="fas fa-play mr-1"></i>Backup
+                </button>
+              </div>
+            </div>
+          @endeach
+        </div>
+      @endif
+    </div>
+  </div>
+
+  <script>
+    const runningBackups = new Set();
+
+    async function executeBackup(settingsId, dbName) {
+      const btn = document.querySelector(`.backup-btn[data-id="${settingsId}"]`);
+      const statusEl = document.querySelector(`.backup-status[data-id="${settingsId}"]`);
+
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Running';
+      statusEl.innerHTML = '';
+
+      try {
+        const response = await fetch(`/settings/api/${settingsId}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Failed to start backup');
+
+        // Start polling for status after 1 second delay
+        runningBackups.add(settingsId);
+        setTimeout(() => pollStatus(settingsId), 1000);
+
+      } catch (error) {
+        statusEl.innerHTML = '<span class="text-red-600">Failed</span>';
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<i class="fas fa-play mr-1"></i>Backup';
+      }
+    }
+
+    async function pollStatus(settingsId) {
+      if (!runningBackups.has(settingsId)) return;
+
+      try {
+        const response = await fetch(`/settings/api/${settingsId}/status`);
+        const data = await response.json();
+
+        const statusEl = document.querySelector(`.backup-status[data-id="${settingsId}"]`);
+        const btn = document.querySelector(`.backup-btn[data-id="${settingsId}"]`);
+
+        if (data.status === 'running') {
+          setTimeout(() => pollStatus(settingsId), 1000);
+        } else if (data.status === 'completed') {
+          statusEl.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-1"></i>Done</span>';
+          runningBackups.delete(settingsId);
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+          btn.innerHTML = '<i class="fas fa-play mr-1"></i>Backup';
+          // Reload page after a moment to update stats
+          setTimeout(() => location.reload(), 1500);
+        } else if (data.status === 'failed') {
+          statusEl.innerHTML = '<span class="text-red-600"><i class="fas fa-times mr-1"></i>Failed</span>';
+          runningBackups.delete(settingsId);
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+          btn.innerHTML = '<i class="fas fa-play mr-1"></i>Backup';
+        } else {
+          setTimeout(() => pollStatus(settingsId), 1000);
+        }
+      } catch (error) {
+        setTimeout(() => pollStatus(settingsId), 2000);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.backup-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const card = btn.closest('[data-setting-id]');
+          const dbName = card.querySelector('.setting-name')?.textContent || 'this database';
+
+          const confirmed = await Dialog.confirm({
+            title: 'Start Backup',
+            message: `Are you sure you want to start a backup for "${dbName}"?`,
+            confirmText: 'Start Backup',
+            cancelText: 'Cancel',
+          });
+
+          if (confirmed) {
+            executeBackup(btn.dataset.id, dbName);
+          }
+        });
+      });
+    });
+  </script>
+@endslot
+@endcomponent

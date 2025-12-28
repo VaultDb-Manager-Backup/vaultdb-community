@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | VaultDB Community</title>
+  <link rel="icon" type="image/svg+xml" href="/images/logo-icon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #14b8a6;
+      --primary-dark: #0d9488;
+      --primary-light: #5eead4;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, #f0fdfa 0%, #f5f5f4 50%, #ecfdf5 100%);
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(20, 184, 166, 0.1);
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(20, 184, 166, 0.1);
+      box-shadow: 0 4px 24px rgba(20, 184, 166, 0.08);
+    }
+    .glass-sidebar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(20, 184, 166, 0.1);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.03);
+    }
+    .glass-header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(20, 184, 166, 0.1);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(20, 184, 166, 0.3);
+    }
+    .sidebar-link {
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-link:hover {
+      background: rgba(20, 184, 166, 0.08);
+      border-left-color: var(--primary-light);
+    }
+    .sidebar-link.active {
+      background: rgba(20, 184, 166, 0.12);
+      border-left-color: var(--primary);
+      color: var(--primary-dark);
+    }
+    .sidebar-link.active i {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 glass-sidebar flex flex-col">
+      <div class="p-5 border-b border-teal-100">
+        <a href="/" class="flex items-center gap-3">
+          <img src="/images/logo-icon.svg" alt="VaultDB" class="w-10 h-10">
+          <div>
+            <h1 class="text-xl font-extrabold" style="color: var(--primary-dark)">VaultDB</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200" style="color: var(--primary-dark)">Community</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="flex-1 py-4">
+        <a href="/" class="sidebar-link flex items-center gap-3 px-6 py-3 text-gray-600 hover:text-gray-900 {{ title === 'Dashboard' ? 'active' : '' }}">
+          <i class="fas fa-chart-pie w-5 text-gray-400"></i>
+          Dashboard
+        </a>
+        <a href="/settings" class="sidebar-link flex items-center gap-3 px-6 py-3 text-gray-600 hover:text-gray-900 {{ title === 'Backup Settings' ? 'active' : '' }}">
+          <i class="fas fa-cog w-5 text-gray-400"></i>
+          Settings
+        </a>
+        <a href="/backups" class="sidebar-link flex items-center gap-3 px-6 py-3 text-gray-600 hover:text-gray-900 {{ title === 'Backup History' ? 'active' : '' }}">
+          <i class="fas fa-history w-5 text-gray-400"></i>
+          Backup History
+        </a>
+      </nav>
+
+      <div class="p-4 border-t border-teal-100">
+        <p class="text-xs text-gray-400">v{{ appVersion }}</p>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto">
+      <header class="glass-header px-8 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-gray-800">{{ title }}</h2>
+        <div class="flex items-center gap-4">
+          @if(headerAction)
+            {{{ headerAction }}}
+          @endif
+          <a href="/auth/logout" class="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="text-sm">Logout</span>
+          </a>
+        </div>
+      </header>
+
+      <div class="p-8">
+        {{{ await $slots.main() }}}
+      </div>
+    </main>
+  </div>
+
+  <!-- Dialog Component -->
+  <div id="dialog-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div id="dialog-container" class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-200 scale-95 opacity-0">
+      <div class="p-6">
+        <div class="flex items-center gap-4 mb-4">
+          <div id="dialog-icon" class="w-12 h-12 rounded-full flex items-center justify-center">
+            <i id="dialog-icon-i" class="fas text-xl"></i>
+          </div>
+          <div>
+            <h3 id="dialog-title" class="text-lg font-semibold text-gray-800"></h3>
+          </div>
+        </div>
+        <p id="dialog-message" class="text-gray-600 mb-6"></p>
+        <div id="dialog-actions" class="flex gap-3 justify-end">
+          <button id="dialog-cancel" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+            Cancel
+          </button>
+          <button id="dialog-confirm" class="px-4 py-2 rounded-lg text-white transition-colors">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dialog Component
+    const Dialog = {
+      overlay: null,
+      container: null,
+      resolvePromise: null,
+
+      init() {
+        this.overlay = document.getElementById('dialog-overlay');
+        this.container = document.getElementById('dialog-container');
+
+        // Button handlers only - no close on overlay click or ESC
+        document.getElementById('dialog-cancel').addEventListener('click', () => this.close(false));
+        document.getElementById('dialog-confirm').addEventListener('click', () => this.close(true));
+      },
+
+      show(options) {
+        const {
+          title = 'Confirm',
+          message = 'Are you sure?',
+          type = 'default',
+          confirmText = 'Confirm',
+          cancelText = 'Cancel',
+          showCancel = true
+        } = options;
+
+        // Set content
+        document.getElementById('dialog-title').textContent = title;
+        document.getElementById('dialog-message').textContent = message;
+        document.getElementById('dialog-confirm').textContent = confirmText;
+        document.getElementById('dialog-cancel').textContent = cancelText;
+        document.getElementById('dialog-cancel').style.display = showCancel ? 'block' : 'none';
+
+        // Set theme based on type
+        const icon = document.getElementById('dialog-icon');
+        const iconI = document.getElementById('dialog-icon-i');
+        const confirmBtn = document.getElementById('dialog-confirm');
+
+        const themes = {
+          danger: { bg: '#fee2e2', icon: 'fa-exclamation-triangle', iconColor: '#dc2626', btnBg: '#dc2626', btnHover: '#b91c1c' },
+          warning: { bg: '#fef3c7', icon: 'fa-exclamation-circle', iconColor: '#d97706', btnBg: '#d97706', btnHover: '#b45309' },
+          success: { bg: '#dcfce7', icon: 'fa-check-circle', iconColor: '#16a34a', btnBg: '#16a34a', btnHover: '#15803d' },
+          info: { bg: '#dbeafe', icon: 'fa-info-circle', iconColor: '#2563eb', btnBg: '#2563eb', btnHover: '#1d4ed8' },
+          default: { bg: '#ccfbf1', icon: 'fa-question-circle', iconColor: '#0d9488', btnBg: '#0d9488', btnHover: '#0f766e' }
+        };
+
+        const theme = themes[type] || themes.default;
+        icon.style.backgroundColor = theme.bg;
+        icon.className = 'w-12 h-12 rounded-full flex items-center justify-center';
+        iconI.className = `fas ${theme.icon} text-xl`;
+        iconI.style.color = theme.iconColor;
+        confirmBtn.className = 'px-4 py-2 rounded-lg text-white transition-colors';
+        confirmBtn.style.backgroundColor = theme.btnBg;
+        confirmBtn.onmouseenter = () => confirmBtn.style.backgroundColor = theme.btnHover;
+        confirmBtn.onmouseleave = () => confirmBtn.style.backgroundColor = theme.btnBg;
+
+        // Show dialog
+        this.overlay.classList.remove('hidden');
+        this.overlay.classList.add('flex');
+        requestAnimationFrame(() => {
+          this.container.classList.remove('scale-95', 'opacity-0');
+          this.container.classList.add('scale-100', 'opacity-100');
+        });
+
+        return new Promise(resolve => {
+          this.resolvePromise = resolve;
+        });
+      },
+
+      close(result) {
+        this.container.classList.remove('scale-100', 'opacity-100');
+        this.container.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          this.overlay.classList.add('hidden');
+          this.overlay.classList.remove('flex');
+          if (this.resolvePromise) {
+            this.resolvePromise(result);
+            this.resolvePromise = null;
+          }
+        }, 200);
+      },
+
+      // Convenience methods
+      confirm(options) {
+        return this.show({ type: 'default', ...options });
+      },
+
+      danger(options) {
+        return this.show({ type: 'danger', confirmText: 'Delete', ...options });
+      },
+
+      warning(options) {
+        return this.show({ type: 'warning', ...options });
+      },
+
+      success(options) {
+        return this.show({ type: 'success', showCancel: false, confirmText: 'OK', ...options });
+      },
+
+      alert(options) {
+        return this.show({ showCancel: false, confirmText: 'OK', ...options });
+      }
+    };
+
+    // Initialize dialog on DOM load
+    document.addEventListener('DOMContentLoaded', () => Dialog.init());
+
+    // Simple toast notification
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const bgColor = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-teal-500' : 'bg-gray-700';
+      toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg ${bgColor} text-white shadow-lg z-50 transition-all duration-300`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

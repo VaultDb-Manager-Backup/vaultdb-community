@@ -1,0 +1,285 @@
+@component('components/layout/app', { title: title })
+@slot('main')
+  <div class="max-w-2xl mx-auto">
+    <div class="glass-card rounded-xl p-8">
+      <form action="{{ isEdit ? '/settings/' + setting._id : '/settings' }}" method="POST">
+        <!-- Database Info -->
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-database text-teal-500"></i>
+            Database Connection
+          </h3>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-gray-600 mb-2">Name</label>
+              <input type="text" name="name" value="{{ setting?.name || '' }}" required
+                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                placeholder="My Database Backup">
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-600 mb-2">Database Type</label>
+              <select name="database_type" id="database_type" required
+                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800">
+                <option value="mysql" {{ setting?.database_type === 'mysql' ? 'selected' : '' }}>MySQL</option>
+                <option value="postgresql" {{ setting?.database_type === 'postgresql' ? 'selected' : '' }}>PostgreSQL</option>
+                <option value="mongodb" {{ setting?.database_type === 'mongodb' ? 'selected' : '' }}>MongoDB</option>
+              </select>
+            </div>
+
+            <!-- Connection Mode Toggle -->
+            <div class="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
+              <button type="button" id="mode-string" class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                style="background-color: #0d9488; color: white;">
+                Connection String
+              </button>
+              <button type="button" id="mode-fields" class="px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                Separate Fields
+              </button>
+            </div>
+
+            <!-- Connection String Mode -->
+            <div id="connection-string-mode" class="space-y-4">
+              <div>
+                <label class="block text-sm text-gray-600 mb-2">Connection String</label>
+                <input type="text" name="connection_string" id="connection_string"
+                  value="{{ setting?.connection_string || '' }}"
+                  class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800 font-mono text-sm"
+                  placeholder="mysql://user:password@localhost:3306">
+                <p class="text-xs text-gray-400 mt-2" id="connection_hint">
+                  Format: mysql://user:password@host:port
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-600 mb-2">Database Name</label>
+                <input type="text" name="database_from_string" id="database_from_string"
+                  value="{{ setting?.database || '' }}"
+                  class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                  placeholder="my_database">
+                <p class="text-xs text-gray-400 mt-2">
+                  The database to backup (will be appended to the connection string)
+                </p>
+              </div>
+            </div>
+
+            <!-- Separate Fields Mode -->
+            <div id="fields-mode" class="hidden space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Host</label>
+                  <input type="text" name="host" id="host" value="{{ setting?.host || '' }}"
+                    class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                    placeholder="localhost">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Port</label>
+                  <input type="number" name="port" id="port" value="{{ setting?.port || '' }}"
+                    class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                    placeholder="3306">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Username</label>
+                  <input type="text" name="username" id="username" value="{{ setting?.username || '' }}"
+                    class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                    placeholder="root">
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 mb-2">Password</label>
+                  <input type="password" name="password" id="password" value="{{ setting?.password || '' }}"
+                    class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                    placeholder="••••••••">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm text-gray-600 mb-2">Database</label>
+                <input type="text" name="database" id="database" value="{{ setting?.database || '' }}"
+                  class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800"
+                  placeholder="my_database">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Options -->
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-cloud text-purple-500"></i>
+            Storage Options
+          </h3>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-600 mb-2">Storage Type</label>
+              <select name="storage_type"
+                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800">
+                <option value="local" {{ setting?.storage_type === 'local' ? 'selected' : '' }}>Local</option>
+                <option value="s3" {{ setting?.storage_type === 's3' ? 'selected' : '' }}>AWS S3</option>
+                <option value="ftp" {{ setting?.storage_type === 'ftp' ? 'selected' : '' }}>FTP</option>
+                <option value="sftp" {{ setting?.storage_type === 'sftp' ? 'selected' : '' }}>SFTP</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-600 mb-2">Retention (days)</label>
+              <input type="number" name="retention_days" value="{{ setting?.retention_days || 7 }}"
+                class="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 focus:outline-none text-gray-800">
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-4">
+          <button type="submit" class="btn-primary px-6 py-3 rounded-lg font-medium">
+            <i class="fas fa-save mr-2"></i>
+            {{ isEdit ? 'Update' : 'Create' }} Setting
+          </button>
+          <a href="/settings" class="px-6 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const connectionFormats = {
+      mysql: {
+        placeholder: 'mysql://user:password@localhost:3306/database',
+        hint: 'Format: mysql://user:password@host:port/database',
+        defaultPort: 3306
+      },
+      postgresql: {
+        placeholder: 'postgresql://user:password@localhost:5432/database',
+        hint: 'Format: postgresql://user:password@host:port/database',
+        defaultPort: 5432
+      },
+      mongodb: {
+        placeholder: 'mongodb://user:password@localhost:27017/database',
+        hint: 'Format: mongodb://user:password@host:port/database?authSource=admin',
+        defaultPort: 27017
+      }
+    };
+
+    let currentMode = 'string';
+
+    function setMode(mode) {
+      currentMode = mode;
+      const stringMode = document.getElementById('connection-string-mode');
+      const fieldsMode = document.getElementById('fields-mode');
+      const btnString = document.getElementById('mode-string');
+      const btnFields = document.getElementById('mode-fields');
+      const connectionInput = document.getElementById('connection_string');
+
+      if (mode === 'string') {
+        stringMode.classList.remove('hidden');
+        fieldsMode.classList.add('hidden');
+        btnString.style.backgroundColor = '#0d9488';
+        btnString.style.color = 'white';
+        btnFields.style.backgroundColor = 'transparent';
+        btnFields.style.color = '#4b5563';
+        connectionInput.required = true;
+      } else {
+        stringMode.classList.add('hidden');
+        fieldsMode.classList.remove('hidden');
+        btnFields.style.backgroundColor = '#0d9488';
+        btnFields.style.color = 'white';
+        btnString.style.backgroundColor = 'transparent';
+        btnString.style.color = '#4b5563';
+        connectionInput.required = false;
+        // Build connection string from fields on submit
+      }
+    }
+
+    function updateConnectionHint() {
+      const dbType = document.getElementById('database_type').value;
+      const input = document.getElementById('connection_string');
+      const hint = document.getElementById('connection_hint');
+      const portInput = document.getElementById('port');
+      const format = connectionFormats[dbType];
+
+      if (format) {
+        input.placeholder = format.placeholder;
+        hint.textContent = format.hint;
+        if (!portInput.value) {
+          portInput.placeholder = format.defaultPort;
+        }
+      }
+    }
+
+    function buildConnectionString() {
+      const dbType = document.getElementById('database_type').value;
+      const host = document.getElementById('host').value || 'localhost';
+      const port = document.getElementById('port').value || connectionFormats[dbType].defaultPort;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const database = document.getElementById('database').value;
+
+      let connString = `${dbType}://`;
+      if (username) {
+        connString += encodeURIComponent(username);
+        if (password) {
+          connString += ':' + encodeURIComponent(password);
+        }
+        connString += '@';
+      }
+      connString += `${host}:${port}/${database}`;
+
+      if (dbType === 'mongodb') {
+        connString += '?authSource=admin';
+      }
+
+      return connString;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('database_type').addEventListener('change', updateConnectionHint);
+      document.getElementById('mode-string').addEventListener('click', () => setMode('string'));
+      document.getElementById('mode-fields').addEventListener('click', () => setMode('fields'));
+
+      // Build connection string before submit
+      document.querySelector('form').addEventListener('submit', (e) => {
+        if (currentMode === 'fields') {
+          const connString = buildConnectionString();
+          document.getElementById('connection_string').value = connString;
+        } else {
+          // Append database to connection string if provided separately
+          const dbFromString = document.getElementById('database_from_string').value;
+          const connString = document.getElementById('connection_string').value;
+          if (dbFromString && connString) {
+            // Remove trailing slash if exists
+            let finalConnString = connString.replace(/\/+$/, '');
+            // Remove any existing database from connection string path
+            try {
+              const url = new URL(finalConnString);
+              url.pathname = '/' + dbFromString;
+              // Add authSource for MongoDB
+              if (document.getElementById('database_type').value === 'mongodb' && !url.search.includes('authSource')) {
+                url.searchParams.set('authSource', 'admin');
+              }
+              document.getElementById('connection_string').value = url.toString();
+            } catch {
+              // If URL parsing fails, just append
+              document.getElementById('connection_string').value = finalConnString + '/' + dbFromString;
+            }
+          }
+        }
+      });
+
+      updateConnectionHint();
+
+      // If editing and has connection_string, stay in string mode
+      // If editing and has host but no connection_string, switch to fields mode
+      const hasConnString = document.getElementById('connection_string').value;
+      const hasHost = document.getElementById('host').value;
+      if (!hasConnString && hasHost) {
+        setMode('fields');
+      }
+    });
+  </script>
+@endslot
+@endcomponent

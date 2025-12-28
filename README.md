@@ -15,21 +15,103 @@ Open source database backup manager with support for MySQL, PostgreSQL, MongoDB,
 - **Checksum Verification**: Data integrity validation
 - **REST API**: Programmatic backup management
 - **Web UI**: Simple dashboard for monitoring
+- **HTTP Basic Auth**: Optional dashboard protection
 
 ## Quick Start
 
-### Using Docker
+### Using Docker Compose
 
 ```bash
-docker-compose up -d
+# Clone the repository
+git clone https://github.com/VaultDb-Manager-Backup/vaultdb-community.git
+cd vaultdb-community
+
+# Copy and configure environment variables
+cp .docker/dev/.env.example .docker/dev/.env
+
+# Start the services
+docker compose -f .docker/dev/app.yaml up -d
+
+# Access the dashboard
+open http://localhost:3001
 ```
 
-### Using npm
+Default credentials: `admin` / `admin`
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Application port | `3001` |
+| `NODE_ENV` | Environment mode | `development` |
+| `AUTH_USERNAME` | Basic auth username (leave empty to disable) | - |
+| `AUTH_PASSWORD` | Basic auth password (leave empty to disable) | - |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://mongo:27017/vaultdb` |
+| `REDIS_HOST` | Redis host | `redis` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `ENCRYPTION_KEY` | 32-character encryption key | - |
+| `S3_ENDPOINT` | S3-compatible endpoint URL | - |
+| `S3_REGION` | S3 region | `us-east-1` |
+| `S3_ACCESS_KEY` | S3 access key | - |
+| `S3_SECRET_KEY` | S3 secret key | - |
+| `S3_BUCKET_NAME` | S3 bucket name | `backups` |
+
+### Using npm/CLI
 
 ```bash
 npm install -g @vaultdb/cli
 vaultdb config init
 vaultdb backup run
+```
+
+## Docker Compose Profiles
+
+```bash
+# Start core services only (app, worker, mongo, redis)
+docker compose -f .docker/dev/app.yaml up -d
+
+# Start with MinIO storage (S3-compatible)
+docker compose -f .docker/dev/app.yaml --profile storage up -d
+
+# Start with test databases (MySQL, PostgreSQL)
+docker compose -f .docker/dev/app.yaml --profile databases up -d
+
+# Start everything
+docker compose -f .docker/dev/app.yaml --profile storage --profile databases up -d
+
+# Scale workers
+WORKER_REPLICAS=3 docker compose -f .docker/dev/app.yaml up -d
+```
+
+## Authentication
+
+VaultDB Community supports optional HTTP Basic Authentication to protect the dashboard.
+
+### Enable Authentication
+
+Set the following environment variables:
+
+```env
+AUTH_USERNAME=admin
+AUTH_PASSWORD=your-secure-password
+```
+
+### Disable Authentication
+
+Leave the variables empty or remove them:
+
+```env
+AUTH_USERNAME=
+AUTH_PASSWORD=
+```
+
+### Public Endpoints
+
+The `/health` endpoint is always public for monitoring purposes:
+
+```bash
+curl http://localhost:3001/health
+# {"status":"ok","timestamp":"..."}
 ```
 
 ## Documentation

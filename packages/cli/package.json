@@ -1,0 +1,37 @@
+{
+  "name": "@vaultdb/cli",
+  "version": "0.1.0",
+  "description": "VaultDB command-line interface",
+  "license": "MIT",
+  "bin": {
+    "vaultdb": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cli": "node dist/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@vaultdb/core": "*",
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "inquirer": "^8.2.6",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VaultDb-Manager-Backup/vaultdb-community.git",
+    "directory": "packages/cli"
+  }
+}

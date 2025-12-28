@@ -1,0 +1,247 @@
+# VaultDB Community - Docker Compose (Dev)
+# Simple setup for running VaultDB Community edition
+
+services:
+  # ===========================================
+  # Core Services
+  # ===========================================
+
+  app:
+    build:
+      context: ../..
+      dockerfile: .docker/Dockerfile.dev
+    command: ["node", "packages/server/dist/server/src/api/main.js"]
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-in-production-32chars!}
+      # Authentication (leave empty to disable)
+      - AUTH_USERNAME=${AUTH_USERNAME:-}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-}
+      # S3 Storage (optional)
+      - S3_ENDPOINT=${S3_ENDPOINT:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-backups}
+      - S3_FORCE_PATH_STYLE=${S3_FORCE_PATH_STYLE:-false}
+    volumes:
+      - backups:/app/backups
+      - restores:/app/restores
+      # Dev: share from host
+      - ../../node_modules:/app/node_modules
+      - ../../packages:/app/packages
+    depends_on:
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: .docker/Dockerfile.dev
+    command: ["node", "packages/server/dist/server/src/worker/main.js"]
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-in-production-32chars!}
+      - BACKUP_CONCURRENCY=${BACKUP_CONCURRENCY:-2}
+      - RESTORE_CONCURRENCY=${RESTORE_CONCURRENCY:-2}
+      # S3 Storage
+      - S3_ENDPOINT=${S3_ENDPOINT:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-backups}
+      - S3_FORCE_PATH_STYLE=${S3_FORCE_PATH_STYLE:-false}
+    volumes:
+      - backups:/app/backups
+      - restores:/app/restores
+      # Dev: share from host
+      - ../../node_modules:/app/node_modules
+      - ../../packages:/app/packages
+    depends_on:
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: ${WORKER_REPLICAS:-1}
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ===========================================
+  # Infrastructure
+  # ===========================================
+
+  mongo:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=vaultdb
+    ports:
+      - "${MONGO_PORT:-27019}:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6381}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  # ===========================================
+  # Optional: MinIO (S3-compatible storage)
+  # ===========================================
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - storage
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ===========================================
+  # Optional: Test Databases
+  # ===========================================
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=testdb
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    profiles:
+      - databases
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  mysql:
+    image: mysql:8
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysql123
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testpass
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    profiles:
+      - databases
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+volumes:
+  mongo_data:
+  redis_data:
+  minio_data:
+  postgres_data:
+  mysql_data:
+  backups:
+  restores:
+
+# ===========================================
+# Usage Examples
+# ===========================================
+#
+# Start core services only:
+#   docker-compose -f .docker/app.yaml up -d
+#
+# Start with MinIO storage:
+#   docker-compose -f .docker/app.yaml --profile storage up -d
+#
+# Start with test databases:
+#   docker-compose -f .docker/app.yaml --profile databases up -d
+#
+# Start everything:
+#   docker-compose -f .docker/app.yaml --profile storage --profile databases up -d
+#
+# Scale workers:
+#   WORKER_REPLICAS=3 docker-compose -f .docker/app.yaml up -d
