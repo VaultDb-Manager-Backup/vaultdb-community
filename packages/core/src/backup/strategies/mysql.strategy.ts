@@ -37,6 +37,9 @@ export class MysqlBackupStrategy extends BackupStrategy {
         password,
         database,
         connectTimeout: 30000,
+        ssl: {
+          rejectUnauthorized: false,
+        },
       });
 
       // Get table statistics
@@ -140,6 +143,7 @@ export class MysqlBackupStrategy extends BackupStrategy {
       '--routines',
       '--triggers',
       '--events',
+      '--skip-ssl',
       database,
       `--result-file=${outputFile}`,
     ].join(' ');
