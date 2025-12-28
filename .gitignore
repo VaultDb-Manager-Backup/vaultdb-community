@@ -42,3 +42,4 @@ restores/
 *.pem
 *.key
 credentials.json
+cookies.txt
