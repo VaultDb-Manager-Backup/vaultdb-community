@@ -64,7 +64,9 @@ RUN apk add --no-cache \
     bash \
     curl \
     tar \
-    gzip
+    gzip \
+    # For entrypoint user switching
+    su-exec
 
 # Create non-root user
 RUN addgroup -g 1001 -S vaultdb && \
@@ -92,8 +94,9 @@ COPY packages/server/public ./public
 RUN mkdir -p /app/backups /app/restores && \
     chown -R vaultdb:vaultdb /app
 
-# Switch to non-root user
-USER vaultdb
+# Copy entrypoint script
+COPY .docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port
 EXPOSE 3000
@@ -101,6 +104,9 @@ EXPOSE 3000
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
+
+# Entrypoint handles permissions and user switching
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command (API server)
 CMD ["node", "packages/server/dist/server/src/api/main.js"]
