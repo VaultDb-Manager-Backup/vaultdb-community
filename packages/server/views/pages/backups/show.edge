@@ -1,0 +1,146 @@
+@component('components/layout/app', { title: 'Backup Details' })
+@slot('main')
+  <div class="max-w-3xl mx-auto">
+    <a href="/backups" class="text-gray-500 hover:text-teal-600 mb-4 inline-block">
+      <i class="fas fa-arrow-left mr-2"></i>Back to History
+    </a>
+
+    <div class="glass-card rounded-xl p-8">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+        <div class="flex items-center gap-4">
+          @if(backup.status === 'completed')
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+          @elseif(backup.status === 'failed')
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <i class="fas fa-times text-red-600 text-2xl"></i>
+            </div>
+          @else
+            <div class="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center">
+              <i class="fas fa-spinner fa-spin text-yellow-600 text-2xl"></i>
+            </div>
+          @endif
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">{{ backup.settings_name }}</h2>
+            <p class="text-gray-500">{{ new Date(backup.createdAt).toLocaleString() }}</p>
+          </div>
+        </div>
+
+        @if(backup.status === 'completed' && backup.storage_url)
+          <a href="{{ backup.storage_url }}" class="btn-primary px-4 py-2 rounded-lg" target="_blank">
+            <i class="fas fa-download mr-2"></i>Download
+          </a>
+        @endif
+      </div>
+
+      <!-- Details -->
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <p class="text-sm text-gray-500 mb-1">Status</p>
+          <p class="font-semibold text-gray-800 capitalize">{{ backup.status }}</p>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <p class="text-sm text-gray-500 mb-1">File Size</p>
+          <p class="font-semibold text-gray-800">
+            {{ backup.file_size ? (backup.file_size / 1024 / 1024).toFixed(2) + ' MB' : '-' }}
+          </p>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <p class="text-sm text-gray-500 mb-1">Duration</p>
+          <p class="font-semibold text-gray-800">
+            {{ backup.duration_ms ? (backup.duration_ms / 1000).toFixed(1) + ' seconds' : '-' }}
+          </p>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          <p class="text-sm text-gray-500 mb-1">Started At</p>
+          <p class="font-semibold text-gray-800">
+            {{ backup.started_at ? new Date(backup.started_at).toLocaleString() : '-' }}
+          </p>
+        </div>
+
+        @if(backup.file_path)
+          <div class="bg-gray-50 rounded-lg p-4 col-span-2 border border-gray-100">
+            <p class="text-sm text-gray-500 mb-1">File Path</p>
+            <p class="font-mono text-sm break-all text-gray-700">{{ backup.file_path }}</p>
+          </div>
+        @endif
+
+        @if(backup.error_message)
+          <div class="bg-red-50 rounded-lg p-4 col-span-2 border border-red-200">
+            <p class="text-sm text-red-600 mb-1">Error Message</p>
+            <p class="text-red-700">{{ backup.error_message }}</p>
+          </div>
+        @endif
+      </div>
+
+      <!-- Table Statistics -->
+      @if(backup.metadata && backup.metadata.tables && backup.metadata.tables.length > 0)
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-table mr-2 text-teal-600"></i>Backup Statistics
+          </h3>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-teal-50 rounded-lg p-4 border border-teal-100 text-center">
+              <p class="text-3xl font-bold text-teal-700">{{ backup.metadata.total_tables }}</p>
+              <p class="text-sm text-teal-600">Tables</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 text-center">
+              <p class="text-3xl font-bold text-blue-700">{{ backup.metadata.total_rows?.toLocaleString() }}</p>
+              <p class="text-sm text-blue-600">Total Rows</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 text-center">
+              <p class="text-3xl font-bold text-purple-700">{{ backup.file_size ? (backup.file_size / 1024 / 1024).toFixed(2) : '0' }} MB</p>
+              <p class="text-sm text-purple-600">Total Size</p>
+            </div>
+          </div>
+
+          <!-- Table Details -->
+          <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-gray-100 border-b border-gray-200">
+                <tr>
+                  <th class="text-left px-4 py-3 text-sm font-medium text-gray-600">Table Name</th>
+                  <th class="text-right px-4 py-3 text-sm font-medium text-gray-600">Rows</th>
+                  <th class="text-right px-4 py-3 text-sm font-medium text-gray-600">Size</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @each(table in backup.metadata.tables)
+                  <tr class="hover:bg-gray-100 transition-colors">
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-2">
+                        <i class="fas fa-database text-gray-400 text-xs"></i>
+                        <span class="font-mono text-sm text-gray-700">{{ table.name }}</span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="font-semibold text-gray-800">{{ table.rows?.toLocaleString() }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-gray-600">{{ table.size ? (table.size / 1024).toFixed(1) + ' KB' : '-' }}</span>
+                    </td>
+                  </tr>
+                @endeach
+              </tbody>
+              <tfoot class="bg-gray-100 border-t border-gray-200">
+                <tr>
+                  <td class="px-4 py-3 font-semibold text-gray-700">Total</td>
+                  <td class="px-4 py-3 text-right font-bold text-teal-700">{{ backup.metadata.total_rows?.toLocaleString() }}</td>
+                  <td class="px-4 py-3 text-right font-bold text-teal-700">{{ backup.file_size ? (backup.file_size / 1024).toFixed(1) + ' KB' : '-' }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      @endif
+    </div>
+  </div>
+@endslot
+@endcomponent

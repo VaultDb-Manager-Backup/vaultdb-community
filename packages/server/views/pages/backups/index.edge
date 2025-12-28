@@ -1,0 +1,154 @@
+@component('components/layout/app', { title: 'Backup History' })
+@slot('main')
+  <div class="flex justify-between items-center mb-6">
+    <p class="text-gray-500">View all backup executions</p>
+    @if(pagination && pagination.total > 0)
+      <span class="text-sm text-gray-500">
+        Total: {{ pagination.total }} backups
+      </span>
+    @endif
+  </div>
+
+  @if(backups.length === 0)
+    <div class="glass-card rounded-xl p-12 text-center">
+      <i class="fas fa-history text-6xl text-gray-400 mb-4"></i>
+      <h3 class="text-xl font-semibold text-gray-800 mb-2">No backups yet</h3>
+      <p class="text-gray-500 mb-6">Execute your first backup from the settings page</p>
+      <a href="/settings" class="btn-primary px-6 py-3 rounded-lg font-medium inline-block">
+        <i class="fas fa-cog mr-2"></i>Go to Settings
+      </a>
+    </div>
+  @else
+    <div class="glass-card rounded-xl overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-6 py-4 text-sm font-medium text-gray-600">Status</th>
+            <th class="text-left px-6 py-4 text-sm font-medium text-gray-600">Database</th>
+            <th class="text-left px-6 py-4 text-sm font-medium text-gray-600">Date</th>
+            <th class="text-left px-6 py-4 text-sm font-medium text-gray-600">Size</th>
+            <th class="text-left px-6 py-4 text-sm font-medium text-gray-600">Duration</th>
+            <th class="text-right px-6 py-4 text-sm font-medium text-gray-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          @each(backup in backups)
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4">
+                @if(backup.status === 'completed')
+                  <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span class="text-green-600 font-medium">Completed</span>
+                  </span>
+                @elseif(backup.status === 'failed')
+                  <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span class="text-red-600 font-medium">Failed</span>
+                  </span>
+                @elseif(backup.status === 'running')
+                  <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                    <span class="text-yellow-600 font-medium">Running</span>
+                  </span>
+                @else
+                  <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span class="text-gray-600">Pending</span>
+                  </span>
+                @endif
+              </td>
+              <td class="px-6 py-4 font-medium text-gray-800">{{ backup.settings_name }}</td>
+              <td class="px-6 py-4 text-gray-600">{{ new Date(backup.createdAt).toLocaleString() }}</td>
+              <td class="px-6 py-4 text-gray-600">
+                @if(backup.status === 'completed' && backup.file_size != null)
+                  {{ (backup.file_size / 1024 / 1024).toFixed(2) }} MB
+                @elseif(backup.status === 'running')
+                  <span class="text-yellow-600">...</span>
+                @elseif(backup.status === 'failed')
+                  <span class="text-red-400">-</span>
+                @else
+                  -
+                @endif
+              </td>
+              <td class="px-6 py-4 text-gray-600">
+                {{ backup.duration_ms ? (backup.duration_ms / 1000).toFixed(1) + 's' : '-' }}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-end gap-2">
+                  <a href="/backups/{{ backup._id }}" class="p-2 rounded-lg hover:bg-blue-50 text-blue-600" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  @if(backup.status === 'completed' && backup.storage_url)
+                    <a href="{{ backup.storage_url }}" class="p-2 rounded-lg hover:bg-green-50 text-green-600" title="Download" target="_blank">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  @endif
+                </div>
+              </td>
+            </tr>
+          @endeach
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    @if(pagination && pagination.totalPages > 1)
+      <div class="flex items-center justify-between mt-6">
+        <div class="text-sm text-gray-500">
+          Showing {{ (pagination.page - 1) * pagination.limit + 1 }} to {{ Math.min(pagination.page * pagination.limit, pagination.total) }} of {{ pagination.total }}
+        </div>
+        <div class="flex items-center gap-2">
+          @if(pagination.page > 1)
+            <a href="/backups?page={{ pagination.page - 1 }}"
+              class="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+              <i class="fas fa-chevron-left mr-1"></i> Previous
+            </a>
+          @else
+            <span class="px-4 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+              <i class="fas fa-chevron-left mr-1"></i> Previous
+            </span>
+          @endif
+
+          <div class="flex items-center gap-1">
+            @let(startPage = Math.max(1, pagination.page - 2))
+            @let(endPage = Math.min(pagination.totalPages, pagination.page + 2))
+
+            @if(startPage > 1)
+              <a href="/backups?page=1" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600">1</a>
+              @if(startPage > 2)
+                <span class="text-gray-400">...</span>
+              @endif
+            @endif
+
+            @each(p in Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i))
+              @if(p === pagination.page)
+                <span class="w-10 h-10 flex items-center justify-center rounded-lg font-medium text-white" style="background-color: #0d9488">{{ p }}</span>
+              @else
+                <a href="/backups?page={{ p }}" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600">{{ p }}</a>
+              @endif
+            @endeach
+
+            @if(endPage < pagination.totalPages)
+              @if(endPage < pagination.totalPages - 1)
+                <span class="text-gray-400">...</span>
+              @endif
+              <a href="/backups?page={{ pagination.totalPages }}" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600">{{ pagination.totalPages }}</a>
+            @endif
+          </div>
+
+          @if(pagination.page < pagination.totalPages)
+            <a href="/backups?page={{ pagination.page + 1 }}"
+              class="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+              Next <i class="fas fa-chevron-right ml-1"></i>
+            </a>
+          @else
+            <span class="px-4 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+              Next <i class="fas fa-chevron-right ml-1"></i>
+            </span>
+          @endif
+        </div>
+      </div>
+    @endif
+  @endif
+@endslot
+@endcomponent

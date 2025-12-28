@@ -32,8 +32,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Backup files (for testing)
-backups/
-restores/
+/backups/
+/restores/
 *.sql
 *.tar.gz
 *.archive.gz
