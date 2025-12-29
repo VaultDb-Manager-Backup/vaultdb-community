@@ -163,7 +163,7 @@ services:
           memory: 128M
 
   # ===========================================
-  # Optional: Test Databases
+  # Optional: Test Databases (with 10k records each)
   # ===========================================
 
   postgres:
@@ -176,6 +176,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db-init/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -191,23 +192,71 @@ services:
         reservations:
           memory: 64M
 
-  mysql:
-    image: mysql:8
+  mysql8:
+    image: mysql:8.0
     environment:
       - MYSQL_ROOT_PASSWORD=mysql123
       - MYSQL_DATABASE=testdb
       - MYSQL_USER=testuser
       - MYSQL_PASSWORD=testpass
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL8_PORT:-3306}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+      - mysql8_data:/var/lib/mysql
+      - ./db-init/mysql:/docker-entrypoint-initdb.d:ro
+    command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmysql123"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
+    profiles:
+      - databases
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  mysql57:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysql123
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=testuser
+      - MYSQL_PASSWORD=testpass
+    ports:
+      - "${MYSQL57_PORT:-3307}:3306"
+    volumes:
+      - mysql57_data:/var/lib/mysql
+      - ./db-init/mysql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmysql123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    profiles:
+      - databases
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # MongoDB with test data
+  mongo-test:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=testdb
+    ports:
+      - "${MONGO_TEST_PORT:-27018}:27017"
+    volumes:
+      - mongo_test_data:/data/db
+      - ./db-init/mongo:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     profiles:
       - databases
@@ -223,7 +272,9 @@ volumes:
   redis_data:
   minio_data:
   postgres_data:
-  mysql_data:
+  mysql8_data:
+  mysql57_data:
+  mongo_test_data:
   backups:
   restores:
 

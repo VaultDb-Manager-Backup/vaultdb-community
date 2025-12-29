@@ -7,13 +7,13 @@ services:
   # ===========================================
 
   app:
-    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.1}
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:0.1.3
     container_name: vaultdb-app
     ports:
-      - "${PORT:-3000}:3000"
+      - 4001:4000
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=4000
       - MONGODB_URI=mongodb://mongo:27017/vaultdb
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -38,7 +38,7 @@ services:
       retries: 3
 
   worker:
-    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:${VERSION:-0.1.1}
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:0.1.3
     container_name: vaultdb-worker
     command: ["node", "packages/server/dist/server/src/worker/main.js"]
     environment:
@@ -71,7 +71,7 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=vaultdb
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "${MONGO_PORT:-27018}:27017"
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped

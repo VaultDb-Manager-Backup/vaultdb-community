@@ -1,0 +1,49 @@
+services:
+  app:
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=your-secure-password
+    volumes:
+      - backups:/app/backups
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/vaultdb-manager-backup/vaultdb-community:latest
+    command: ["node", "packages/server/dist/server/src/worker/main.js"]
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/vaultdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - backups:/app/backups
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:
+  backups:
